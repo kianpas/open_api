@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="serviceConditionVo">
+	<insert id="insertServiceCondition">
+		insert into service_condition values(#{SVC_ID},
+		#{JA0101},
+		#{JA0102}, #{JA0103}, #{JA0104},
+		#{JA0105},
+		#{JA0106}, #{JA0107},
+		#{JA0108}, #{JA0109}, #{JA0110}, #{JA0111}, #{JA0201},
+		#{JA0202},
+		#{JA0203}, #{JA0204}, #{JA0205}, #{JA0301},
+		#{JA0302} , #{JA0303}, #{JA0304}, #{JA0305}, #{JA0306},
+		#{JA0307}, #{JA0308}, #{JA0309}, #{JA0310}, #{JA0311},
+		#{JA0312}, #{JA0313}, #{JA0314}, #{JA0315}, #{JA0316},
+		#{JA0317}, #{JA0318}, #{JA0319}, #{JA0320}, #{JA0322},
+		#{JA0323}, #{JA0324}, #{JA0325}, #{JA0326}, #{JA0327},
+		#{JA0401}, #{JA0402}, #{JA0403}, #{JA0404}, #{JA0410},
+		#{JA0411}, #{JA0412}, #{JA0413}, #{JA0414}
+		)
+	</insert>
+	<select id="serviceConditionDbCount" resultType="_int">
+		select count(*) from service_condition
+	</select>
+	<select id="findConditionById" resultType="serviceConditionVo">
+		select * from service_condition where svc_id = #{serviceId}
+	</select>
+</mapper>

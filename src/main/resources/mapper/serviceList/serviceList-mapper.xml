@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="serviceListVo">
+	<insert id="insertServiceList">
+		insert into service_list values(
+		#{serviceId},
+		#{appPeriod},
+		#{url}, #{orgCode},
+		#{orgName},
+		#{deptName}, #{readCount})
+	</insert>
+	<select id="serviceList" resultType="serviceListVo">
+		select R.*
+		from 
+		(select rownum row_num , E.*
+		    from
+		        (select s.*, l.app_period, l.url, l.org_code, l.org_name, l.dept_name, l.read_count
+		            from service_list l left join service s
+		            on l.service_id = s.service_id
+		            order by s.service_id asc
+		         ) E
+		) R
+		where row_num between #{page} and #{pageEnd}
+	</select> 
+	<select id="selectServiceListByCondition" resultType="serviceListVo">
+		select R.*
+			from
+			(select rownum row_num , E.*
+			    from
+			        (select s.*, l.app_period, l.url, l.org_code, l.org_name, l.dept_name, l.read_count, c.*
+			            from service_list l 
+			                left join service s
+			                on l.service_id = s.service_id
+			                left join service_condition c
+			                on l.service_id = c.svc_id
+			            order by s.service_id asc) E) R
+			where row_num between 1 and 5 and ja0201 = 'Y'
+	</select>
+</mapper>

@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="serviceDetailVo">
+	<insert id="insertServiceDetail">
+		insert into service_detail (service_id, app_doc,
+		app_org_name, phone, app_url, edit_date, org_name, admin_rule, law,
+		law_order)
+		values(
+		#{serviceId},
+		#{appDoc}, #{appOrgName}, #{phone},
+		#{appUrl}, #{editDate}, #{orgName},
+		#{adminRule}, #{law}, #{lawOrder}
+		)
+	</insert>
+	<select id="findById" resultType="serviceDetailVo">
+		select * from service_detail d left join service s
+		on d.service_id = s.service_id 
+		where d.service_id = #{serviceId}
+	</select>
+</mapper>

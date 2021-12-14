@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="serviceVo">
+	<insert id="insertService">
+		insert into service values(#{serviceId},
+		#{serviceType},
+		#{serviceName}, #{servicePurpose}, #{serviceTarget},
+		#{serviceRule},
+		#{serviceContent}, #{appMethod})
+	</insert>
+	<select id="getDbCount" resultType="_int">
+		select count(*) from service
+	</select>
+	<delete id="deleteById">
+		delete from service where service_id = #{serviceId}
+	</delete>
+</mapper>
