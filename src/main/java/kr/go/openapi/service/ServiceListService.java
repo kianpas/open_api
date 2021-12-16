@@ -10,32 +10,36 @@ import kr.go.openapi.vo.ServiceVo;
 
 public interface ServiceListService {
 
-	//serviceVo ÀÔ·Â
+	//serviceVo ï¿½Ô·ï¿½
 	public int insertService(ServiceVo serviceVo);
 	
-	//serviceListVo ÀÔ·Â
+	//serviceListVo ï¿½Ô·ï¿½
 	public int insertServiceList(ServiceListVo serviceListVo);
 	
-	//serviceDetailVo ÀÔ·Â
+	//serviceDetailVo ï¿½Ô·ï¿½
 	public int insertServiceDetail(ServiceDetailVo serviceDetailVo);
 	
 	public int insertServiceCondition(ServiceConditionVo scVo);
 
-	//serviceDetailVo Ã£±â
+	//serviceDetailVo Ã£ï¿½ï¿½
 	public ServiceDetailVo findById(String serviceId);
 	
-	//serviceDetailVo Ã£±â
+	//serviceDetailVo Ã£ï¿½ï¿½
 	public ServiceConditionVo findConditionById(String serviceId);
 	
-	//ÃÑ DB
+	//ï¿½ï¿½ DB
 	public int getDbCount();
 	
 	public int serviceConditionDbCount();
 	
-	//serviceList °¡Á®¿À±â
+	//serviceList ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 	public List<ServiceListVo> serviceList(Map<String, Object> map);
 	
-	public List<ServiceListVo> selectServiceListByCondition();
+	//ï¿½ï¿½ï¿½Ç¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Æ®
+	public List<ServiceListVo> selectServiceListByCondition(Map<String, Object> voMap);
+	
 		
 	public int test();
+
+	public int conditionCnt(Map<String, Object> voMap);
 }

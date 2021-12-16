@@ -13,31 +13,29 @@
 			<hr>
 		</div>
 		<div class="row mt-3">
-			<span>최종수정일 <c:out value="${serviceDetailVo.editDate}" />
-				소관기관 <c:out value="${serviceDetailVo.orgName}" />
-			</span>
 			<p>
 				<c:out value="${seviceDetailVo.servicePurpose}" />
 			</p>
 		</div>
 		<div class="row mt-3">
-			<h5 class="fw-bold">어떤 내용인지 궁금하시죠?</h5>
-			<hr>
-		</div>
-		<div class="row">
-			<div class="col-2">
+			<div class="col-3">
 				<p>지원형태</p>
-				<p>지원내용</p>
-			</div>
-			<div class="col-10">
 				<p>
 					<c:out value="${serviceDetailVo.serviceType}" />
 				</p>
+
+			</div>
+			<div class="col-3">
+				<p>접수기관</p>
 				<p>
-					<c:out value="${serviceDetailVo.serviceContent}" />
+					<c:out value="${serviceDetailVo.appOrgName}" />
 				</p>
 			</div>
+
+
+
 		</div>
+		<div class="row"></div>
 		<div class="row mt-3">
 			<h5 class="fw-bold">이런 분께 해당합니다.</h5>
 			<hr>
@@ -90,6 +88,11 @@
 		</div>
 		<div class="row mt-3">
 			<p>${serviceDetailVo.lawOrder}</p>
+		</div>
+		<div class="row mt-3">
+			<span>최종수정일 <c:out value="${serviceDetailVo.editDate}" />
+				소관기관 <c:out value="${serviceDetailVo.orgName}" />
+			</span>
 		</div>
 	</div>
 </div>

@@ -3,6 +3,8 @@ package kr.go.openapi.dao;
 import java.util.List;
 import java.util.Map;
 
+import org.apache.ibatis.annotations.Param;
+
 import kr.go.openapi.vo.ServiceConditionVo;
 import kr.go.openapi.vo.ServiceDetailVo;
 import kr.go.openapi.vo.ServiceListVo;
@@ -30,6 +32,8 @@ public interface ServiceListDao {
 
 	public List<ServiceListVo> serviceList(Map<String, Object> map);
 	
-	public List<ServiceListVo> selectServiceListByCondition();
+	public List<ServiceListVo> selectServiceListByCondition(Map<String, Object> voMap);
+
+	public int conditionCnt(Map<String, Object> voMap);
 
 }

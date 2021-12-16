@@ -77,9 +77,9 @@ public class ServiceListServiceImpl implements ServiceListService {
 	
 	
 	@Override
-	public List<ServiceListVo> selectServiceListByCondition() {
+	public List<ServiceListVo> selectServiceListByCondition(Map<String, Object> voMap) {
 		
-		return serviceListDao.selectServiceListByCondition();
+		return serviceListDao.selectServiceListByCondition(voMap);
 	}
 
 	@Override
@@ -88,4 +88,11 @@ public class ServiceListServiceImpl implements ServiceListService {
 		return serviceListDao.insertServiceDetail(serviceDetailVo);
 	}
 
+	@Override
+	public int conditionCnt(Map<String, Object> voMap) {
+		
+		return serviceListDao.conditionCnt(voMap);
+	}
+
+	
 }
