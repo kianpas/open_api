@@ -3,9 +3,10 @@ package kr.go.openapi.controller;
 import java.lang.reflect.Field;
 import java.lang.reflect.Type;
 import java.net.URI;
-
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
-
+import java.util.Iterator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -15,13 +16,16 @@ import javax.servlet.http.HttpServletRequest;
 import org.json.*;
 import org.apache.http.client.HttpClient;
 import org.apache.http.impl.client.HttpClientBuilder;
-
+import org.apache.http.impl.client.HttpClients;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.PropertySource;
-
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.ResponseEntity;
+import org.springframework.http.client.ClientHttpRequestFactory;
 import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
 import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
@@ -31,6 +35,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestMethod;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.ResponseBody;
+import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 import org.springframework.web.util.UriComponentsBuilder;
 
@@ -41,6 +46,7 @@ import com.google.gson.JsonElement;
 import com.google.gson.JsonObject;
 import com.google.gson.JsonParser;
 
+import jdk.nashorn.internal.objects.annotations.Getter;
 import kr.go.openapi.HomeController;
 import kr.go.openapi.service.ServiceListService;
 import kr.go.openapi.vo.PageVo;
@@ -61,23 +67,27 @@ public class OpenApiController {
 	@Value("${openapi.serviceKey}")
 	private String serviceKey;
 
-	@RequestMapping(value = "/serviceList/{page}", method = RequestMethod.GET)
-	public String serviceList(Model model, @PathVariable(required = false) int page, HttpServletRequest request) {
+	@RequestMapping(value = { "/serviceList/{page}", "/serviceList" }, method = RequestMethod.GET)
+	public String serviceList(Model model, @PathVariable(required = false) Integer page, HttpServletRequest request) {
+
+		if (page == null) {
+			page = 1;
+		}
+
+		String url = "https://api.odcloud.kr/api/gov24/v1/";
+
+		// int page = 1;
+		// ��û�� uri ����
+		URI uri = UriComponentsBuilder.fromUriString(url + "serviceList").queryParam("page", 1).queryParam("perPage", 1)
+				.queryParam("serviceKey", serviceKey).build(true).toUri();
 
 		try {
-			String url = "https://api.odcloud.kr/api/gov24/v1/";
-
-			// int page = 1;
-			// 요청할 uri 생성
-			URI uri = UriComponentsBuilder.fromUriString(url + "serviceList").queryParam("page", 1)
-					.queryParam("perPage", 1).queryParam("serviceKey", serviceKey).build(true).toUri();
-
-			// 커넥션 풀 설정
+			// Ŀ�ؼ� Ǯ ����
 			HttpClient httpClient = HttpClientBuilder.create().setMaxConnTotal(100).setMaxConnPerRoute(5).build();
 
 			HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory(httpClient);
 
-			// api 요청할 restTemplate
+			// api ��û�� restTemplate
 			RestTemplate restTemplate = new RestTemplate(factory);
 
 			PageVo pageVo = restTemplate.getForObject(uri, PageVo.class);
@@ -85,42 +95,40 @@ public class OpenApiController {
 			int currentCnt = pageVo.getCurrentCount();
 			int apiTotalCnt = pageVo.getTotalCount();
 
-			// 레코드수 확인
+			// ���ڵ�� Ȯ��
 			int serviceDbCount = serviceListService.getDbCount();
 
 			int serviceConditionDbCount = serviceListService.serviceConditionDbCount();
 
 			logger.info("dbcount {} apiTotalCnt {}", serviceDbCount, apiTotalCnt);
 
-			// 레코드 수 체크 후 db 저장 진행
+			// ���ڵ� �� üũ �� db ���� ����
 			if (apiTotalCnt > serviceDbCount) {
 
 				fetchApi(url, restTemplate, apiTotalCnt);
 
 				fetchDetailApi(url, restTemplate, apiTotalCnt);
 			}
-			;
+
 			if (362 != serviceConditionDbCount) {
 				fetchConditionApi(url, restTemplate, apiTotalCnt);
 			}
-			;
-
-			Map<String, Object> map = new HashMap<>();
-			map.put("page", page == 1 ? page : page * 5 - 4);
-			int pageEnd = page * 5;
-			map.put("pageEnd", pageEnd);
+			return "/openapi/serviceList";
+//			Map<String, Object> map = new HashMap<>();
+//			map.put("page", page == 1 ? page : page * 5 - 4);
+//			int pageEnd = page * 5;
+//			map.put("pageEnd", pageEnd);
 
 			// logger.info("selectServiceList {}", selectServiceList);
 
-			// List<ServiceListVo> serviceList = serviceListService.serviceList(map);
-			// String pUrl = request.getRequestURI();
+//			List<ServiceListVo> serviceList = serviceListService.serviceList(map);
+//			String pUrl = request.getRequestURI();
 
 			// model.addAttribute("pagination", pagination(page, pUrl, serviceDbCount));
 			// model.addAttribute("serviceList", serviceList);
-		} catch (Exception e) {
+		} catch (HttpClientErrorException e) {
 			throw e;
 		}
-		return "/openapi/serviceList";
 
 	}
 
@@ -134,267 +142,195 @@ public class OpenApiController {
 		return "/openapi/serviceDetail";
 	}
 
-	// service, seviceList api ��������
-	public void fetchApi(String url, RestTemplate restTemplate, int perPage) {
+	@ResponseBody
+	@RequestMapping(value = "/slByAjax/{page}", method = RequestMethod.GET)
+	public Map<String, Object> slcByAjax(@PathVariable(required = false) int page,
+			@RequestParam(value = "url") String url, HttpServletRequest request) {
+		logger.info("page {}", page);
+		logger.info("url {}", url);
+		int pageEnd = page * 5;
 
-		try {
-			int page = 1;
-			// ��û�� uri ����
-			// build(true)�� ���� ���ڵ� ����
-			// toUri() �ռ� �ۼ��� �������� uri��
-			URI uri = UriComponentsBuilder.fromUriString(url + "serviceList").queryParam("page", page)
-					.queryParam("perPage", perPage).queryParam("serviceKey", serviceKey).build(true).toUri();
+		// ����¡ ���� �Է�
+		Map<String, Object> voMap = new HashMap<>();
+		Map<String, Object> resultMap = new HashMap<>();
 
-			PageVo pageVo = restTemplate.getForObject(uri, PageVo.class);
+		voMap.put("page", page == 1 ? page : page * 5 - 4);
+		voMap.put("pageEnd", pageEnd);
 
-			// String xml = XML.toString(pageVo);
+		List<ServiceListVo> serviceList = serviceListService.serviceList(voMap);
+		int conditionCnt = serviceListService.conditionCnt(voMap);
+		// String pUrl = request.getRequestURI();
+		resultMap.put("serviceList", serviceList);
+		resultMap.put("page", page);
+		resultMap.put("pagination", pagingAjax(page, url, conditionCnt));
 
-			// logger.info("xml {}", xml);
+		return resultMap;
+	}
 
-			// json �迭 �ݺ� ��ü�� ����
-			for (int i = 0; i < pageVo.getData().size(); i++) {
+	// ���ǿ� ���� ���� ����Ʈ �񵿱�
+	@ResponseBody
+	@RequestMapping(value = "/serviceList/{page}", method = RequestMethod.POST)
+	public Map<String, Object> slcByAjax(@RequestBody ServiceConditionVo svo, Model model, @PathVariable int page,
+			HttpServletRequest request) throws Exception {
 
-				JsonObject tmp = (JsonObject) pageVo.getData().get(i);
+		int pageEnd = page * 5;
 
-				String serviceId = getAsString(tmp, "서비스ID");
-				String serviceType = getAsString(tmp, "지원유형");
-				String serviceName = getAsString(tmp, "서비스명");
-				String servicePurpose = getAsString(tmp, "서비스목적");
-				String serviceTarget = getAsString(tmp, "지원대상");
-				String serviceRule = getAsString(tmp, "선정기준");
-				String serviceContent = getAsString(tmp, "지원내용");
-				String appMethod = getAsString(tmp, "신청방법");
-				String appPeriod = getAsString(tmp, "신청기한");
-				String detailUrl = getAsString(tmp, "상세조회URL");
-				String orgCode = getAsString(tmp, "소관기관코드");
-				String orgName = getAsString(tmp, "소관기관명");
-				String deptName = getAsString(tmp, "부서명");
-				int readCount = !tmp.get("��ȸ��").isJsonNull() ? tmp.get("조회수").getAsInt() : 0;
+		// ����¡ ���� �Է�
+		Map<String, Object> voMap = new HashMap<>();
+		Map<String, Object> resultMap = new HashMap<>();
 
-				ServiceVo serviceVo = new ServiceVo(serviceId, serviceType, serviceName, servicePurpose, serviceTarget,
-						serviceRule, serviceContent, appMethod);
-				ServiceListVo serviceListVo = new ServiceListVo(appPeriod, detailUrl, orgCode, orgName, deptName,
-						readCount);
-				serviceListVo.setServiceId(serviceId);
+		voMap.put("page", page == 1 ? page : page * 5 - 4);
+		voMap.put("pageEnd", pageEnd);
+		// logger.info("svo {}", svo);
 
-				if (serviceListService.findById(serviceId) == null) {
+		if (svo == null) {
+			List<ServiceListVo> serviceList = serviceListService.serviceList(voMap);
 
-					int result = serviceListService.insertService(serviceVo);
-					int result2 = serviceListService.insertServiceList(serviceListVo);
-					logger.info("aserviceListVo Result {}", result);
+			resultMap.put("serviceList", serviceList);
+		} else {
+
+			// ���� ���� �Է�
+			Map<String, Object> condMap = new HashMap<>();
+
+			// ���̹�Ƽ�� ������ ���� ��ü �и�
+			Field[] fields = svo.getClass().getDeclaredFields();
+
+			List<ServiceListVo> tempList = new ArrayList<>();
+			for (Field field : fields) {
+				field.setAccessible(true);
+
+				if (field.get(svo) != null) {
+					condMap.put(field.getName(), field.get(svo));
+					logger.info("condMap {}", condMap);
+
+					String[] tempArr = { "JA0103", "JA0104", "JA0105", "JA0106", "JA0107", "JA0108", "JA0109" };
+					int[] min = { 0, 6, 13, 19, 30, 50, 65 };
+					int[] max = { 5, 12, 18, 29, 49, 64, 120 };
+
+					// ���� ���� ���ÿ� ���� �˻��� ���� ���� x
+					// ���� �� ����Ʈ�� ���ϱ� ó���ϸ� ��
+					for (int i = 0; i < tempArr.length; i++) {
+						if (tempArr[i].equals(field.getName())) {
+							logger.info("field {}", field.getName());
+
+							// svo.setJA0110(svo.getJA0110() <= min[i] ? svo.getJA0110() : min[i]);
+							// svo.setJA0111(svo.getJA0111() >= max[i] ? svo.getJA0111() : max[i]);
+							svo.setJA0110(min[i]);
+							svo.setJA0111(max[i]);
+							condMap.remove(field.getName());
+
+							logger.info("vomap {}", voMap);
+
+						}
+
+					}
 				}
 			}
+			if (svo.getJA0110() == 0 && svo.getJA0111() == 0) {
+				condMap.remove("JA0110");
+				condMap.remove("JA0111");
+			}
 
-		} catch (Exception e) {
-			throw e;
+			String pUrl = request.getRequestURI() + "/" + page;
+
+			pUrl = pUrl.lastIndexOf("/") > -1 ? pUrl.substring(0, pUrl.lastIndexOf("/")) : pUrl;
+			// logger.info("Post pUrl {}", pUrl);
+
+			voMap.put("condMap", condMap);
+			logger.info("vomap {}", voMap);
+
+			List<ServiceListVo> selectServiceList = serviceListService.selectServiceListByCondition(voMap);
+			int conditionCnt = serviceListService.conditionCnt(voMap);
+
+			// String pUrl = request.getRequestURI();
+			// model.addAttribute("serviceList", selectServiceList);
+			// model.addAttribute("pagination", pagination(page, pUrl, conditionCnt));
+
+			resultMap.put("serviceList", selectServiceList);
+			resultMap.put("pagination", pagingAjax(page, pUrl, conditionCnt));
+
 		}
-
-		// resttemplate�� ������ json ����, ���ڿ��� ����
-//		ResponseEntity<?> response = restTemplate.getForEntity(uri, String.class);
-		//
-//		// json��ü ����
-//		PageVo obj = gson.fromJson(response.getBody().toString(), PageVo.class);
-		//
-//		int count = (int) Math.ceil(obj.getTotalCount() / obj.getPerPage()) + 1;
-		//
-//		// json ��ü ��ȯ
-//		JsonObject jObj = gson.fromJson(response.getBody().toString(), JsonObject.class);
-//		// data �迭, json �迭�� ����
-//		JsonArray arr = jObj.getAsJsonArray("data");
-
-		// Set<Map.Entry<String, JsonElement>> tmpEntry = tmp.entrySet();
-//		int index = 0;
-//		for (Map.Entry<String, JsonElement> entry : tmpEntry) {
-//			
-//			logger.info("key set {} value {}", entry.getKey(),
-//					!entry.getValue().isJsonNull() ? entry.getValue().getAsString() : "");
+		return resultMap;
 
 	}
 
-	// @RequestMapping(value = "/fetchDetailApi", method = RequestMethod.GET)
+	// service, seviceList api ��������
+	public void fetchApi(String url, RestTemplate restTemplate, int perPage) {
+
+		int page = 1;
+		// ��û�� uri ����
+		// build(true)�� ���� ���ڵ� ����
+		// toUri() �ռ� �ۼ��� �������� uri��
+		URI uri = UriComponentsBuilder.fromUriString(url + "serviceList").queryParam("page", page)
+				.queryParam("perPage", perPage).queryParam("serviceKey", serviceKey).build(true).toUri();
+
+		PageVo pageVo = restTemplate.getForObject(uri, PageVo.class);
+
+		// String xml = XML.toString(pageVo);
+		int result = serviceListService.insertPageVo(pageVo);
+
+	}
+
+	// ���� ������ api ��������
 	public void fetchDetailApi(String url, RestTemplate restTemplate, int perPage) {
 
-		try {
-			int page = 1;
-			// ��û�� uri ����
-			URI uri = UriComponentsBuilder.fromUriString(url + "serviceDetail").queryParam("page", page)
-					.queryParam("perPage", perPage).queryParam("serviceKey", serviceKey).build(true).toUri();
+		int page = 1;
+		// ��û�� uri ����
+		URI uri = UriComponentsBuilder.fromUriString(url + "serviceDetail").queryParam("page", page)
+				.queryParam("perPage", perPage).queryParam("serviceKey", serviceKey).build(true).toUri();
 
-			PageVo pageVo = restTemplate.getForObject(uri, PageVo.class);
+		PageVo pageVo = restTemplate.getForObject(uri, PageVo.class);
 
-			// json �迭 �ݺ� ��ü�� ����
-			for (int i = 0; i < pageVo.getData().size(); i++) {
-				JsonObject tmp = (JsonObject) pageVo.getData().get(i);
-
-				String serviceId = getAsString(tmp, "SVC_ID");
-				String appDoc = getAsString(tmp, "구비서류");
-				String appOrgName = getAsString(tmp, "접수기관명");
-				String phone = getAsString(tmp, "문의처전화번호");
-				String appUrl = getAsString(tmp, "온라인신청사이트URL");
-				String editDate = getAsString(tmp, "수정일시");
-				String orgName = getAsString(tmp, "소관기관명");
-				String adminRule = getAsString(tmp, "행정규칙");
-				String law = getAsString(tmp, "자치법규");
-				String lawOrder = getAsString(tmp, "법령");
-
-				ServiceDetailVo serviceDetailVo = new ServiceDetailVo(appDoc, appOrgName, phone, appUrl, editDate,
-						orgName, adminRule, law, lawOrder);
-				serviceDetailVo.setServiceId(serviceId);
-
-				if (serviceListService.findById(serviceId) == null) {
-					int result = serviceListService.insertServiceDetail(serviceDetailVo);
-					logger.info("serviceDetail result {}", result);
-				}
-			}
-		} catch (Exception e) {
-			throw e;
-		}
+		int result = serviceListService.insertPageVoDetail(pageVo);
 
 	}
 
 	// ���� ��������
 	public void fetchConditionApi(String url, RestTemplate restTemplate, int perPage) {
 
-		try {
-			int page = 1;
-			// ��û�� uri ����
-			URI uri = UriComponentsBuilder.fromUriString(url + "supportConditions").queryParam("page", page)
-					.queryParam("perPage", perPage).queryParam("serviceKey", serviceKey).build(true).toUri();
+		int page = 1;
+		// ��û�� uri ����
+		URI uri = UriComponentsBuilder.fromUriString(url + "supportConditions").queryParam("page", page)
+				.queryParam("perPage", perPage).queryParam("serviceKey", serviceKey).build(true).toUri();
 
-			// pageVo Ÿ������ ����
-			PageVo pageVo = restTemplate.getForObject(uri, PageVo.class);
+		// pageVo Ÿ������ ����
+		PageVo pageVo = restTemplate.getForObject(uri, PageVo.class);
 
-			Gson gson = new Gson();
-
-			for (int i = 0; i < pageVo.getData().size(); i++) {
-
-				// jsonArrary condition �迭 Ÿ������ ����
-				ServiceConditionVo[] scVo = gson.fromJson(pageVo.getData(), ServiceConditionVo[].class);
-				// logger.info("scVo {}", scVo);
-				if (serviceListService.findConditionById(scVo[i].getSVC_ID()) == null) {
-					int result = serviceListService.insertServiceCondition(scVo[i]);
-					logger.info("serviceDetail result {}", result);
-				}
-			}
-		} catch (Exception e) {
-			throw e;
-		}
+		int result = serviceListService.insertPageVoCondition(pageVo);
 
 	}
 
-	@ResponseBody
-	@RequestMapping(value = "/slByAjax/{page}", method = RequestMethod.GET)
-	public Map<String, Object> slcByAjax(@PathVariable(required = false) int page,
-			@RequestParam(value = "url") String url, HttpServletRequest request) {
-
-		try {
-
-			int pageEnd = page * 5;
-
-			// 페이징 정보 입력
-			Map<String, Object> voMap = new HashMap<>();
-			Map<String, Object> resultMap = new HashMap<>();
-
-			voMap.put("page", page == 1 ? page : page * 5 - 4);
-			voMap.put("pageEnd", pageEnd);
-
-			List<ServiceListVo> serviceList = serviceListService.serviceList(voMap);
-			int conditionCnt = serviceListService.conditionCnt(voMap);
-			// String pUrl = request.getRequestURI();
-			resultMap.put("serviceList", serviceList);
-			resultMap.put("page", page);
-			resultMap.put("pagination", pagingAjax(page, url, conditionCnt));
-
-			return resultMap;
-		} catch (Exception e) {
-			throw e;
-		}
-	}
-
-	// 조건에 따른 서비스 리스트 비동기
-	@ResponseBody
-	@RequestMapping(value = "/serviceList/{page}", method = RequestMethod.POST)
-	public Map<String, Object> slcByAjax(@RequestBody ServiceConditionVo svo, Model model, @PathVariable int page,
-			HttpServletRequest request) throws Exception {
-
-		try {
-			int pageEnd = page * 5;
-
-			// 페이징 정보 입력
-			Map<String, Object> voMap = new HashMap<>();
-			Map<String, Object> resultMap = new HashMap<>();
-
-			voMap.put("page", page == 1 ? page : page * 5 - 4);
-			voMap.put("pageEnd", pageEnd);
-			logger.info("svo {}", svo);
-
-			if (svo == null) {
-				List<ServiceListVo> serviceList = serviceListService.serviceList(voMap);
-
-				resultMap.put("serviceList", serviceList);
-			} else {
-
-				// 조건 정보 입력
-				Map<String, Object> condMap = new HashMap<>();
-
-				// 마이바티스 맵핑을 위한 객체 분리
-				Field[] fields = svo.getClass().getDeclaredFields();
-
-				for (Field field : fields) {
-					field.setAccessible(true);
-
-					if (field.get(svo) != null) {
-						condMap.put(field.getName(), field.get(svo));
-						logger.info("condMap {}", condMap);
-						if (svo.getJA0110() == 0 && svo.getJA0110() == 0) {
-							condMap.remove("JA0110");
-							condMap.remove("JA0111");
-
-						}
-					}
-				}
-				String pUrl = request.getRequestURI() + "/" + page;
-
-				pUrl = pUrl.lastIndexOf("/") > -1 ? pUrl.substring(0, pUrl.lastIndexOf("/")) : pUrl;
-
-				voMap.put("condMap", condMap);
-
-				List<ServiceListVo> selectServiceList = serviceListService.selectServiceListByCondition(voMap);
-				int conditionCnt = serviceListService.conditionCnt(voMap);
-
-				resultMap.put("serviceList", selectServiceList);
-				resultMap.put("pagination", pagingAjax(page, pUrl, conditionCnt));
-			}
-
-			return resultMap;
-		} catch (Exception e) {
-			throw e;
-		}
-
-	}
-
-	// 페이징처리 ajax
+	// ����¡ó�� ajax
 	public String pagingAjax(int page, String pUrl, int totalCnt) {
 
 		StringBuffer pagination = new StringBuffer();
-
+		logger.info("totalCnt{}", totalCnt);
 		int pageBarSize = 5;
 		int totalPage = (int) Math.ceil((double) totalCnt / pageBarSize);
 		int pageStart = ((page - 1) / pageBarSize) * pageBarSize + 1;
 		int pageBarEnd = pageStart + pageBarSize - 1;
 		int left = page >= 1 && page <= 5 ? 1 : pageStart - 1;
 		// pUrl = (pUrl.indexOf(String.valueOf(page)) > -1) ? p" : pUrl + "?";
+		logger.info("totalPage {}", totalPage);
 
 		pUrl = pUrl.indexOf("/") > -1 ? pUrl.substring(0, pUrl.lastIndexOf("/")) : pUrl;
 		logger.info("pUrl {}", pUrl);
 		int pageNo = pageStart;
+
 		pagination.append("<nav aria-label=\"Page navigation example\">\r\n"
-				+ "			<ul class=\"pagination justify-content-center\">\r\n"
-				+ "				<li class=\"page-item\"><a class=\"page-link\"\r\n" + "					href=" + pUrl
-				+ "/" + left + "\r\n"
-				+ "					aria-label=\"Previous\"> <span aria-hidden=\"true\">&laquo;</span>\r\n"
-				+ "				</a></li>");
-		logger.info("totalPage {}", totalPage);
+				+ "			<ul class=\"pagination justify-content-center\">\r\n");
+
+		if (page == 1) {
+			pagination.append("				<li class=\"page-item\"><a class=\"page-link\"\r\n"
+					+ "	href=\"javascript:void(0);\"" + "\r\n"
+					+ "					aria-label=\"Previous\" disabled> <span aria-hidden=\"true\">&laquo;</span>\r\n"
+					+ "				</a></li>");
+		} else {
+			pagination
+					.append("<li class=\"page-item\"><a class=\"page-link\"\r\n" + "href=" + pUrl + "/" + left + "\r\n"
+							+ "					aria-label=\"Previous\"> <span aria-hidden=\"true\">&laquo;</span>\r\n"
+							+ "				</a></li>");
+		}
 
 		while (pageNo <= pageBarEnd && pageNo <= totalPage) {
 			pagination.append("<li class=\"page-item\"><a class=\"page-link\"\r\n" + "href=" + pUrl + "/" + pageNo + ">"
@@ -409,87 +345,23 @@ public class OpenApiController {
 
 	}
 
-	// 조건에 따른 서비스 리스트
-	@Deprecated
-	@RequestMapping(value = "/serviceListCondition", method = RequestMethod.GET)
-	public String serviceListCondition(ServiceConditionVo svo, Model model,
-			@RequestParam(defaultValue = "1", required = false) int page, HttpServletRequest request) throws Exception {
-
-		try {
-
-			int pageEnd = page * 5;
-
-			// 페이징 정보 입력
-			Map<String, Object> voMap = new HashMap<>();
-			voMap.put("page", page == 1 ? page : page * 5 - 4);
-			voMap.put("pageEnd", pageEnd);
-
-			// 조건 정보 입력
-			Map<String, Object> condMap = new HashMap<>();
-
-			// 마이바티스 맵핑을 위한 객체 분리
-			Field[] fields = svo.getClass().getDeclaredFields();
-
-			for (Field field : fields) {
-				field.setAccessible(true);
-
-				if (field.get(svo) != null) {
-					condMap.put(field.getName(), field.get(svo));
-					logger.info("condMap {}", condMap);
-					if (svo.getJA0110() == 0 && svo.getJA0110() == 0) {
-						condMap.remove("JA0110");
-						condMap.remove("JA0111");
-
-					}
-				}
-			}
-			String pUrl = request.getRequestURI();
-
-			// url 설정
-			for (String key : condMap.keySet()) {
-				pUrl += (pUrl.indexOf("?") > -1) ? "&" + key + "=" + condMap.get(key)
-						: "?" + key + "=" + condMap.get(key);
-			}
-
-			logger.info("pUrl {}", pUrl);
-
-			voMap.put("condMap", condMap);
-
-			List<ServiceListVo> selectServiceList = serviceListService.selectServiceListByCondition(voMap);
-			int conditionCnt = serviceListService.conditionCnt(voMap);
-
-			// String pUrl = request.getRequestURI();
-			model.addAttribute("serviceList", selectServiceList);
-			model.addAttribute("pagination", pagination(page, pUrl, conditionCnt));
-			logger.info("vomap {}", voMap);
-
-			return "/openapi/serviceList";
-		} catch (Exception e) {
-			throw e;
-		}
-
-	}
-
-	// 일반 페이징
-	@Deprecated
+	// ����¡ó��
 	public String pagination(int page, String pUrl, int totalCnt) {
 
-		StringBuilder pagination = new StringBuilder();
+		StringBuffer pagination = new StringBuffer();
 
 		int pageBarSize = 5;
-		int totalPage = (int) Math.ceil((double) totalCnt / 5);
+		int totalPage = (int) Math.ceil((double) totalCnt / pageBarSize);
 		int pageStart = ((page - 1) / pageBarSize) * pageBarSize + 1;
 		int pageBarEnd = pageStart + pageBarSize - 1;
 		int left = page >= 1 && page <= 5 ? 1 : pageStart - 1;
-		logger.info("2purl {}", pUrl);
-
 		pUrl = (pUrl.indexOf("?") > -1) ? pUrl + "&" : pUrl + "?";
-		logger.info("3purl {}", pUrl);
+
 		int pageNo = pageStart;
 		pagination.append("<nav aria-label=\"Page navigation example\">\r\n"
 				+ "			<ul class=\"pagination justify-content-center\">\r\n"
 				+ "				<li class=\"page-item\"><a class=\"page-link\"\r\n" + "					href=" + pUrl
-				+ left + "\r\n"
+				+ "page=" + left + "\r\n"
 				+ "					aria-label=\"Previous\"> <span aria-hidden=\"true\">&laquo;</span>\r\n"
 				+ "				</a></li>");
 		logger.info("totalPage {}", totalPage);
@@ -507,10 +379,58 @@ public class OpenApiController {
 
 	}
 
-	// �ѱ� key�� -> ��ü �ʵ��
-	public String getAsString(JsonObject tmp, String jsonKey) {
-		String str = !tmp.get(jsonKey).isJsonNull() ? tmp.get(jsonKey).getAsString() : "";
-		return str;
+	// ���ǿ� ���� ���� ����Ʈ
+	@RequestMapping(value = "/serviceListCondition", method = RequestMethod.GET)
+	public String serviceListCondition(ServiceConditionVo svo, Model model,
+			@RequestParam(defaultValue = "1", required = false) int page, HttpServletRequest request) throws Exception {
+
+		int pageEnd = page * 5;
+
+		// ����¡ ���� �Է�
+		Map<String, Object> voMap = new HashMap<>();
+		voMap.put("page", page == 1 ? page : page * 5 - 4);
+		voMap.put("pageEnd", pageEnd);
+
+		// ���� ���� �Է�
+		Map<String, Object> condMap = new HashMap<>();
+
+		// ���̹�Ƽ�� ������ ���� ��ü �и�
+		Field[] fields = svo.getClass().getDeclaredFields();
+
+		for (Field field : fields) {
+			field.setAccessible(true);
+
+			if (field.get(svo) != null || "0".equals(String.valueOf(field.get(svo)))) {
+				condMap.put(field.getName(), field.get(svo));
+				logger.info("condMap {}", condMap);
+				if (svo.getJA0110() == 0 && svo.getJA0111() == 0) {
+					// condMap.remove("JA0110");
+					// condMap.remove("JA0111");
+
+				}
+			}
+		}
+		String pUrl = request.getRequestURI();
+
+		// url ����
+		for (String key : condMap.keySet()) {
+			pUrl += (pUrl.indexOf("?") > -1) ? "&" + key + "=" + condMap.get(key) : "?" + key + "=" + condMap.get(key);
+		}
+
+		logger.info("pUrl {}", pUrl);
+
+		voMap.put("condMap", condMap);
+
+		List<ServiceListVo> selectServiceList = serviceListService.selectServiceListByCondition(voMap);
+		int conditionCnt = serviceListService.conditionCnt(voMap);
+
+		// String pUrl = request.getRequestURI();
+		model.addAttribute("serviceList", selectServiceList);
+		model.addAttribute("pagination", pagination(page, pUrl, conditionCnt));
+		logger.info("vomap {}", voMap);
+
+		return "/openapi/serviceList";
+
 	}
 
 }

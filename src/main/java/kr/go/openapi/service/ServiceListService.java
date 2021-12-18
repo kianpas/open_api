@@ -3,6 +3,7 @@ package kr.go.openapi.service;
 import java.util.List;
 import java.util.Map;
 
+import kr.go.openapi.vo.PageVo;
 import kr.go.openapi.vo.ServiceConditionVo;
 import kr.go.openapi.vo.ServiceDetailVo;
 import kr.go.openapi.vo.ServiceListVo;
@@ -10,36 +11,44 @@ import kr.go.openapi.vo.ServiceVo;
 
 public interface ServiceListService {
 
-	//serviceVo ï¿½Ô·ï¿½
+	//pageVo·Î ÀÔ·Â
+	public int insertPageVo(PageVo pageVo);
+	
+	public int insertPageVoDetail(PageVo pageVo);
+	
+	public int insertPageVoCondition(PageVo pageVo);
+	
+	
+	//serviceVo ÀÔ·Â
 	public int insertService(ServiceVo serviceVo);
 	
-	//serviceListVo ï¿½Ô·ï¿½
+	//serviceListVo ÀÔ·Â
 	public int insertServiceList(ServiceListVo serviceListVo);
 	
-	//serviceDetailVo ï¿½Ô·ï¿½
+	//serviceDetailVo ÀÔ·Â
 	public int insertServiceDetail(ServiceDetailVo serviceDetailVo);
 	
 	public int insertServiceCondition(ServiceConditionVo scVo);
 
-	//serviceDetailVo Ã£ï¿½ï¿½
+	//serviceDetailVo Ã£±â
 	public ServiceDetailVo findById(String serviceId);
 	
-	//serviceDetailVo Ã£ï¿½ï¿½
+	//serviceDetailVo Ã£±â
 	public ServiceConditionVo findConditionById(String serviceId);
 	
-	//ï¿½ï¿½ DB
+	//ÃÑ DB
 	public int getDbCount();
 	
 	public int serviceConditionDbCount();
 	
-	//serviceList ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
+	//serviceList °¡Á®¿À±â
 	public List<ServiceListVo> serviceList(Map<String, Object> map);
 	
-	//ï¿½ï¿½ï¿½Ç¿ï¿½ ï¿½ï¿½ï¿½ï¿½ ï¿½ï¿½ï¿½ï¿½Æ®
+	//Á¶°Ç¿¡ µû¸¥ ¸®½ºÆ®
 	public List<ServiceListVo> selectServiceListByCondition(Map<String, Object> voMap);
 	
 		
-	public int test();
-
 	public int conditionCnt(Map<String, Object> voMap);
+
+	
 }

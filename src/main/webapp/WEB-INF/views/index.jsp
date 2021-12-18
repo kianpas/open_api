@@ -10,7 +10,7 @@
 </div>
 <script>
 	$("#serviceListBtn").click(function() {
-		location.href = "${pageContext.request.contextPath}/serviceList";
+		location.href = "${pageContext.request.contextPath}/serviceList/1";
 	})
 </script>
 </body>
