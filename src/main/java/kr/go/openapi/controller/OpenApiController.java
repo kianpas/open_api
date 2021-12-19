@@ -339,7 +339,7 @@ public class OpenApiController {
 		} else {
 			pagination
 					.append("<li class=\"page-item\"><a class=\"page-link\"\r\n" + "href=" + pUrl + "/" + left + "\r\n"
-							+ "					aria-label=\"Previous\"> <span aria-hidden=\"true\">&laquo;</span>\r\n"
+							+ "					aria-label=\"Previous\"> &laquo;\r\n"
 							+ "				</a></li>");
 		}
 
@@ -356,7 +356,7 @@ public class OpenApiController {
 
 		} else {
 			pagination.append("<li class=\"page-item\"><a class=\"page-link\" href=" + pUrl + "/" + pageNo
-					+ "					aria-label=\"Next\"> <span aria-hidden=\"true\">&raquo;</span>\r\n"
+					+ "					aria-label=\"Next\"> &raquo;\r\n"
 					+ "				</a></li>\r\n" + "			</ul>\r\n" + "		</nav>");
 		}
 
