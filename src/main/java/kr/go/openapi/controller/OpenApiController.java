@@ -191,11 +191,11 @@ public class OpenApiController {
 
 			// ���� ���� �Է�
 			Map<String, Object> condMap = new HashMap<>();
+			List<Map<String, Object>> ageList = new ArrayList<>();
 
 			// ���̹�Ƽ�� ������ ���� ��ü �и�
 			Field[] fields = svo.getClass().getDeclaredFields();
 
-			List<ServiceListVo> tempList = new ArrayList<>();
 			for (Field field : fields) {
 				field.setAccessible(true);
 
@@ -212,20 +212,31 @@ public class OpenApiController {
 					for (int i = 0; i < tempArr.length; i++) {
 						if (tempArr[i].equals(field.getName())) {
 							logger.info("field {}", field.getName());
-
+							Map<String, Object> ageMap = new HashMap<>();
 							// svo.setJA0110(svo.getJA0110() <= min[i] ? svo.getJA0110() : min[i]);
 							// svo.setJA0111(svo.getJA0111() >= max[i] ? svo.getJA0111() : max[i]);
 							svo.setJA0110(min[i]);
 							svo.setJA0111(max[i]);
+							ageMap.put("JA0110", svo.getJA0110());
+							ageMap.put("JA0111", svo.getJA0111());
+							ageList.add(ageMap);
+
 							condMap.remove(field.getName());
 
-							logger.info("vomap {}", voMap);
+							logger.info("ageMap {}", ageMap);
 
+							logger.info("ageList {}", ageList);
 						}
 
 					}
+					condMap.remove("JA0110");
+					condMap.remove("JA0111");
 				}
+
 			}
+
+			voMap.put("ageList", ageList);
+
 			if (svo.getJA0110() == 0 && svo.getJA0111() == 0) {
 				condMap.remove("JA0110");
 				condMap.remove("JA0111");
@@ -320,11 +331,11 @@ public class OpenApiController {
 		pagination.append("<nav aria-label=\"Page navigation example\">\r\n"
 				+ "			<ul class=\"pagination justify-content-center\">\r\n");
 
-		if (page == 1) {
-			pagination.append("				<li class=\"page-item\"><a class=\"page-link\"\r\n"
-					+ "	href=\"javascript:void(0);\"" + "\r\n"
-					+ "					aria-label=\"Previous\" disabled> <span aria-hidden=\"true\">&laquo;</span>\r\n"
-					+ "				</a></li>");
+		if (page == 1 || totalPage <= pageBarSize) {
+			//pagination.append("				<li class=\"page-item\"><a class=\"page-link\"\r\n"
+			//		+ "	href=\"javascript:void(0);\"" + "\r\n"
+			//		+ "					aria-label=\"Previous\" disabled> <span aria-hidden=\"true\">&laquo;</span>\r\n"
+			//		+ "				</a></li>");
 		} else {
 			pagination
 					.append("<li class=\"page-item\"><a class=\"page-link\"\r\n" + "href=" + pUrl + "/" + left + "\r\n"
@@ -337,9 +348,17 @@ public class OpenApiController {
 					+ pageNo + "</a></li>");
 			pageNo++;
 		}
-		pagination.append("<li class=\"page-item\"><a class=\"page-link\" href=" + pUrl + "/" + pageNo
-				+ "					aria-label=\"Next\"> <span aria-hidden=\"true\">&raquo;</span>\r\n"
-				+ "				</a></li>\r\n" + "			</ul>\r\n" + "		</nav>");
+
+		if (pageNo > totalPage) {
+			//pagination.append("<li class=\"page-item\"><a class=\"page-link\" href=\"javascript:void(0);\""
+			//		+ "					aria-label=\"Next\"> <span aria-hidden=\"true\">&raquo;</span>\r\n"
+			//		+ "				</a></li>\r\n" + "			</ul>\r\n" + "		</nav>");
+
+		} else {
+			pagination.append("<li class=\"page-item\"><a class=\"page-link\" href=" + pUrl + "/" + pageNo
+					+ "					aria-label=\"Next\"> <span aria-hidden=\"true\">&raquo;</span>\r\n"
+					+ "				</a></li>\r\n" + "			</ul>\r\n" + "		</nav>");
+		}
 
 		return pagination.toString();
 

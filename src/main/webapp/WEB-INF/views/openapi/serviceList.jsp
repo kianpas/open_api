@@ -403,31 +403,32 @@
 			data[key] = value;
 			
 		})
-		
+		var url = location.href.substr(0, 34)+"1";
 		
 		//선택한 조건 없을 경우 기본 1페이지
 		if(Object.keys(data).length == 0){
-			
+			history.pushState(null, null, url);
 			getDefault(1);
 			
 		} else {
 			
 			//조건으로 처음 검색 시 첫 페이지로
-			var url = location.href.substr(0, 34)+"1";
 			history.pushState(null, null, url);
-			
 			getCondition(1, data);
 		}
 
 	});
 	
 	$("#pageContainer").on("click", function(e){
-		
-		history.pushState(null, null, e.target.href);
-		var uArr = e.target.href.split("/");
-		
+		var link = $(".page-link").attr("href")
 		e.preventDefault();	
 		
+		
+		
+		var uArr = e.target.href.split("/");
+		
+		history.pushState(null, null, e.target.href);
+				
 		var tf;
 		$("#textBox").children().each(function(index, item){
 			

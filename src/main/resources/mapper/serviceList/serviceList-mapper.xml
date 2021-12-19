@@ -37,13 +37,21 @@
 		                on l.service_id = s.service_id
 		                left join service_condition c
 		                on l.service_id = c.svc_id
-		                
-			<if test="condMap !=null">
-			where 
-			<foreach index="key" item="value" collection="condMap" separator="and">
-			 ${key} = #{value}
-			</foreach>
+		<where>
+			<if test="condMap != null">
+				<foreach index="key" item="value" collection="condMap" separator="and">
+				 ${key} = #{value}
+				</foreach>
 			</if>
+			<if test="ageList != null &amp;&amp; ageList.size() != 0">
+				and
+				<foreach item="item" collection="ageList" separator="or">
+					<foreach index="key" item="value" collection="item" separator="and">
+					 ${key} = #{value}
+					</foreach>
+				</foreach>
+			</if>
+		</where>
 		            order by s.service_id asc
 		        ) E
 		 ) R
@@ -60,13 +68,21 @@
 		                on l.service_id = s.service_id
 		                left join service_condition c
 		                on l.service_id = c.svc_id
-		                
+		<where>
 			<if test="condMap !=null">
-			where 
-			<foreach index="key" item="value" collection="condMap" separator="and">
-			 ${key} = #{value}
-			</foreach>
+				<foreach index="key" item="value" collection="condMap" separator="and">
+				 ${key} = #{value}
+				</foreach>
 			</if>
+			<if test="ageList != null &amp;&amp; ageList.size() != 0">
+				and
+				<foreach item="item" collection="ageList" separator="or">
+					<foreach index="key" item="value" collection="item" separator="and">
+					 ${key} = #{value}
+					</foreach>
+				</foreach>
+			</if>
+		</where>
 		            order by s.service_id asc
 		        ) E
 		 ) R
